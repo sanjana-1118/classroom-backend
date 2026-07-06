@@ -20,9 +20,10 @@ import securityMiddleware from "./middleware/security.js";
 import { auth } from "./lib/auth.js";
 
 const app = express();
-const PORT = 8000;
+// Setting to 8080 to match your Railway Networking settings
+const PORT = process.env.PORT || 8080; 
 
-// Dynamic CORS configuration to support both Vite local development ports
+// Dynamic CORS configuration
 app.use(
   cors({
     origin: ["http://localhost:5173", "http://localhost:5174"], 
@@ -49,6 +50,7 @@ app.get("/", (req, res) => {
   res.send("Backend server is running successfully!");
 });
 
-app.listen(PORT, () => {
+// Added "0.0.0.0" to ensure it accepts connections in a containerized environment
+app.listen(Number(PORT), "0.0.0.0", () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
