@@ -15,6 +15,7 @@ import classesRouter from "./routes/classes.js";
 import departmentsRouter from "./routes/departments.js";
 import statsRouter from "./routes/stats.js";
 import enrollmentsRouter from "./routes/enrollments.js";
+import securityMiddleware from "./middleware/security.js";
 
 import { auth } from "./lib/auth.js";
 
@@ -33,6 +34,8 @@ app.use(
 app.all("/api/auth/*splat", toNodeHandler(auth));
 
 app.use(express.json());
+
+app.use(securityMiddleware);
 
 // API Routes
 app.use("/api/subjects", subjectsRouter);
