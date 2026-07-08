@@ -5,7 +5,7 @@ import { db } from "../db/index.js";
 import * as schema from "../schema/auth.js";
 
 const frontendUrl = process.env.FRONTEND_URL ?? "http://localhost:5173";
-const baseUrl = process.env.BETTER_AUTH_URL ?? "http://localhost:8000";
+const baseUrl = process.env.BETTER_AUTH_URL ?? "https://classroom-backend-production-a01c.up.railway.app";
 
 export const auth = betterAuth({
   baseURL: baseUrl,

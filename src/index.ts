@@ -26,9 +26,9 @@ const PORT = process.env.PORT || 8080;
 // Dynamic CORS configuration
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:5174"], 
-    methods: ["GET", "POST", "PUT", "DELETE"], 
-    credentials: true, 
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
   })
 );
 
