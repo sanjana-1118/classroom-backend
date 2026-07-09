@@ -1,9 +1,14 @@
 import('apminsight')
   .then((module) => {
     const AgentAPI = module.default;
-    AgentAPI.config();
+    try {
+      AgentAPI.config();
+      console.log('APM agent loaded and configured via apminsight');
+    } catch (apmErr) {
+      console.error('APM agent failed to configure:', apmErr);
+    }
   })
-  .catch(() => console.log('APM not available in this environment'));
+  .catch((err) => console.log('APM not available in this environment:', err));
 
 import cors from "cors";
 import express from "express";
