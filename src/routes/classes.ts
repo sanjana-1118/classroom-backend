@@ -205,38 +205,38 @@ router.get("/:id/users", async (req, res) => {
     const countResult =
       role === "teacher"
         ? await db
-            .select({ count: sql<number>`count(distinct ${user.id})` })
-            .from(user)
-            .leftJoin(classes, eq(user.id, classes.teacherId))
-            .where(and(eq(user.role, role), eq(classes.id, classId)))
+          .select({ count: sql<number>`count(distinct ${user.id})` })
+          .from(user)
+          .leftJoin(classes, eq(user.id, classes.teacherId))
+          .where(and(eq(user.role, role), eq(classes.id, classId)))
         : await db
-            .select({ count: sql<number>`count(distinct ${user.id})` })
-            .from(user)
-            .leftJoin(enrollments, eq(user.id, enrollments.studentId))
-            .where(and(eq(user.role, role), eq(enrollments.classId, classId)));
+          .select({ count: sql<number>`count(distinct ${user.id})` })
+          .from(user)
+          .leftJoin(enrollments, eq(user.id, enrollments.studentId))
+          .where(and(eq(user.role, role), eq(enrollments.classId, classId)));
 
     const totalCount = countResult[0]?.count ?? 0;
 
     const usersList =
       role === "teacher"
         ? await db
-            .select(baseSelect)
-            .from(user)
-            .leftJoin(classes, eq(user.id, classes.teacherId))
-            .where(and(eq(user.role, role), eq(classes.id, classId)))
-            .groupBy(...groupByFields)
-            .orderBy(desc(user.createdAt), desc(user.id))
-            .limit(limitPerPage)
-            .offset(offset)
+          .select(baseSelect)
+          .from(user)
+          .leftJoin(classes, eq(user.id, classes.teacherId))
+          .where(and(eq(user.role, role), eq(classes.id, classId)))
+          .groupBy(...groupByFields)
+          .orderBy(desc(user.createdAt), desc(user.id))
+          .limit(limitPerPage)
+          .offset(offset)
         : await db
-            .select(baseSelect)
-            .from(user)
-            .leftJoin(enrollments, eq(user.id, enrollments.studentId))
-            .where(and(eq(user.role, role), eq(enrollments.classId, classId)))
-            .groupBy(...groupByFields)
-            .orderBy(desc(user.createdAt), desc(user.id))
-            .limit(limitPerPage)
-            .offset(offset);
+          .select(baseSelect)
+          .from(user)
+          .leftJoin(enrollments, eq(user.id, enrollments.studentId))
+          .where(and(eq(user.role, role), eq(enrollments.classId, classId)))
+          .groupBy(...groupByFields)
+          .orderBy(desc(user.createdAt), desc(user.id))
+          .limit(limitPerPage)
+          .offset(offset);
 
     res.status(200).json({
       data: usersList,
