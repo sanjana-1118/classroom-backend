@@ -55,7 +55,7 @@ router.get("/", async (req, res) => {
       })
       .from(user)
       .where(whereClause)
-      .orderBy(desc(user.createdAt))
+      .orderBy(desc(user.createdAt), desc(user.id))
       .limit(limitPerPage)
       .offset(offset);
 

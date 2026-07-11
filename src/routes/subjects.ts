@@ -53,7 +53,7 @@ router.get("/", async (req, res) => {
       .from(subjects)
       .leftJoin(departments, eq(subjects.departmentId, departments.id))
       .where(whereClause)
-      .orderBy(desc(subjects.createdAt))
+      .orderBy(desc(subjects.createdAt), desc(subjects.id))
       .limit(limitPerPage)
       .offset(offset);
 
@@ -164,7 +164,7 @@ router.get("/:id/classes", async (req, res) => {
       .from(classes)
       .leftJoin(user, eq(classes.teacherId, user.id))
       .where(eq(classes.subjectId, subjectId))
-      .orderBy(desc(classes.createdAt))
+      .orderBy(desc(classes.createdAt), desc(classes.id))
       .limit(limitPerPage)
       .offset(offset);
 
@@ -249,7 +249,7 @@ router.get("/:id/users", async (req, res) => {
             .leftJoin(classes, eq(user.id, classes.teacherId))
             .where(and(eq(user.role, role), eq(classes.subjectId, subjectId)))
             .groupBy(...groupByFields)
-            .orderBy(desc(user.createdAt))
+            .orderBy(desc(user.createdAt), desc(user.id))
             .limit(limitPerPage)
             .offset(offset)
         : await db
@@ -259,7 +259,7 @@ router.get("/:id/users", async (req, res) => {
             .leftJoin(classes, eq(enrollments.classId, classes.id))
             .where(and(eq(user.role, role), eq(classes.subjectId, subjectId)))
             .groupBy(...groupByFields)
-            .orderBy(desc(user.createdAt))
+            .orderBy(desc(user.createdAt), desc(user.id))
             .limit(limitPerPage)
             .offset(offset);
 
