@@ -32,7 +32,7 @@ import { auth } from "./lib/auth.js";
 
 const app = express();
 // Setting to 8080 to match your Railway Networking settings
-const PORT = process.env.PORT || 8080; 
+const PORT = process.env.PORT || 8080;
 
 // Dynamic CORS configuration
 app.use(
