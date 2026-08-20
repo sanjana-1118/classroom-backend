@@ -28,13 +28,15 @@ const PORT = process.env.PORT || 8080;
 app.use(
   cors({
     origin: (origin, callback) => {
-      const configuredOrigin = process.env.FRONTEND_URL ?? "http://localhost:5173";
+      // Remove trailing slash if the user accidentally added it in Vercel
+      const configuredOrigin = (process.env.FRONTEND_URL ?? "http://localhost:5173").replace(/\/$/, "");
       const isLocalFrontend = !!origin && /^http:\/\/localhost:\d+$/.test(origin);
 
       if (!origin || origin === configuredOrigin || isLocalFrontend) {
         return callback(null, true);
       }
 
+      console.error(`CORS Error: The origin ${origin} does not match the FRONTEND_URL environment variable (${configuredOrigin})`);
       return callback(new Error("Origin is not allowed by CORS"));
     },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
