@@ -67,7 +67,12 @@ app.get("/", (req, res) => {
   res.send("Backend server is running successfully!");
 });
 
-// Added "0.0.0.0" to ensure it accepts connections in a containerized environment
-app.listen(Number(PORT), "0.0.0.0", () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
+// Only listen if not running on Vercel serverless functions
+if (!process.env.VERCEL) {
+  // Added "0.0.0.0" to ensure it accepts connections in a containerized environment
+  app.listen(Number(PORT), "0.0.0.0", () => {
+    console.log(`Server running at http://localhost:${PORT}`);
+  });
+}
+
+export default app;
