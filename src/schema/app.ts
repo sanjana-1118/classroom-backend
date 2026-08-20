@@ -7,6 +7,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   varchar,
 } from "drizzle-orm/pg-core";
 import { user } from "./auth.js";
@@ -97,10 +98,30 @@ export const enrollments = pgTable(
   (table) => ({
     studentIdIdx: index("enrollments_student_id_idx").on(table.studentId),
     classIdIdx: index("enrollments_class_id_idx").on(table.classId),
-    studentClassUnique: index("enrollments_student_class_unique").on(
+    studentClassUnique: uniqueIndex("enrollments_student_class_unique").on(
       table.studentId,
       table.classId
     ),
+  })
+);
+
+export const announcements = pgTable(
+  "announcements",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    title: varchar("title", { length: 255 }).notNull(),
+    content: text("content").notNull(),
+    authorId: text("author_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    classId: integer("class_id")
+      .notNull()
+      .references(() => classes.id, { onDelete: "cascade" }),
+    ...timestamps,
+  },
+  (table) => ({
+    authorIdIdx: index("announcements_author_id_idx").on(table.authorId),
+    classIdIdx: index("announcements_class_id_idx").on(table.classId),
   })
 );
 
@@ -139,6 +160,17 @@ export const enrollmentsRelations = relations(enrollments, ({ one }) => ({
   }),
 }));
 
+export const announcementsRelations = relations(announcements, ({ one }) => ({
+  author: one(user, {
+    fields: [announcements.authorId],
+    references: [user.id],
+  }),
+  class: one(classes, {
+    fields: [announcements.classId],
+    references: [classes.id],
+  }),
+}));
+
 export type Department = typeof departments.$inferSelect;
 export type NewDepartment = typeof departments.$inferInsert;
 
@@ -150,3 +182,6 @@ export type NewClass = typeof classes.$inferInsert;
 
 export type Enrollment = typeof enrollments.$inferSelect;
 export type NewEnrollment = typeof enrollments.$inferInsert;
+
+export type Announcement = typeof announcements.$inferSelect;
+export type NewAnnouncement = typeof announcements.$inferInsert;

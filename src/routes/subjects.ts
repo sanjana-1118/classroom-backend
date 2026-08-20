@@ -40,7 +40,7 @@ router.get("/", async (req, res) => {
       .leftJoin(departments, eq(subjects.departmentId, departments.id))
       .where(whereClause);
 
-    const totalCount = countResult[0]?.count ?? 0;
+    const totalCount = Number(countResult[0]?.count ?? 0);
 
     // Data query
     const subjectsList = await db
@@ -152,7 +152,7 @@ router.get("/:id/classes", async (req, res) => {
       .from(classes)
       .where(eq(classes.subjectId, subjectId));
 
-    const totalCount = countResult[0]?.count ?? 0;
+    const totalCount = Number(countResult[0]?.count ?? 0);
 
     const classesList = await db
       .select({
@@ -239,7 +239,7 @@ router.get("/:id/users", async (req, res) => {
             .leftJoin(classes, eq(enrollments.classId, classes.id))
             .where(and(eq(user.role, role), eq(classes.subjectId, subjectId)));
 
-    const totalCount = countResult[0]?.count ?? 0;
+    const totalCount = Number(countResult[0]?.count ?? 0);
 
     const usersList =
       role === "teacher"
@@ -275,6 +275,57 @@ router.get("/:id/users", async (req, res) => {
   } catch (error) {
     console.error("GET /subjects/:id/users error:", error);
     res.status(500).json({ error: "Failed to fetch subject users" });
+  }
+});
+
+// Update a subject
+router.patch("/:id", async (req, res) => {
+  try {
+    const subjectId = Number(req.params.id);
+    if (!Number.isFinite(subjectId)) {
+      return res.status(400).json({ error: "Invalid subject id" });
+    }
+
+    const { departmentId, name, code, description } = req.body;
+
+    const [updatedSubject] = await db
+      .update(subjects)
+      .set({ departmentId, name, code, description })
+      .where(eq(subjects.id, subjectId))
+      .returning();
+
+    if (!updatedSubject) {
+      return res.status(404).json({ error: "Subject not found" });
+    }
+
+    res.status(200).json({ data: updatedSubject });
+  } catch (error) {
+    console.error("PATCH /subjects/:id error:", error);
+    res.status(500).json({ error: "Failed to update subject" });
+  }
+});
+
+// Delete a subject
+router.delete("/:id", async (req, res) => {
+  try {
+    const subjectId = Number(req.params.id);
+    if (!Number.isFinite(subjectId)) {
+      return res.status(400).json({ error: "Invalid subject id" });
+    }
+
+    const [deletedSubject] = await db
+      .delete(subjects)
+      .where(eq(subjects.id, subjectId))
+      .returning();
+
+    if (!deletedSubject) {
+      return res.status(404).json({ error: "Subject not found" });
+    }
+
+    res.status(200).json({ data: deletedSubject });
+  } catch (error) {
+    console.error("DELETE /subjects/:id error:", error);
+    res.status(500).json({ error: "Failed to delete subject" });
   }
 });
 

@@ -34,6 +34,14 @@ router.get("/", async (req, res) => {
       filterConditions.push(ilike(user.name, `%${teacher}%`));
     }
 
+    if (req.user?.role === "student") {
+      filterConditions.push(
+        sql`${classes.id} IN (SELECT ${enrollments.classId} FROM ${enrollments} WHERE ${enrollments.studentId} = ${req.user.id})`
+      );
+    } else if (req.user?.role === "teacher") {
+      filterConditions.push(eq(classes.teacherId, req.user.id ?? ""));
+    }
+
     const whereClause =
       filterConditions.length > 0 ? and(...filterConditions) : undefined;
 
@@ -45,7 +53,7 @@ router.get("/", async (req, res) => {
       .leftJoin(user, eq(classes.teacherId, user.id))
       .where(whereClause);
 
-    const totalCount = countResult[0]?.count ?? 0;
+    const totalCount = Number(countResult[0]?.count ?? 0);
 
     // 2. Fetch the Data Rows
     const classesList = await db
@@ -57,6 +65,10 @@ router.get("/", async (req, res) => {
         teacher: {
           ...getTableColumns(user),
         },
+        enrollmentCount: sql<number>`(
+          SELECT count(*) FROM ${enrollments}
+          WHERE ${enrollments.classId} = ${classes.id}
+        )`.mapWith(Number),
       })
       .from(classes)
       .leftJoin(subjects, eq(classes.subjectId, subjects.id))
@@ -94,6 +106,7 @@ router.post("/", async (req, res) => {
       status,
       bannerUrl,
       bannerCldPubId,
+      schedules,
     } = req.body;
 
     const [createdClass] = await db
@@ -107,7 +120,7 @@ router.post("/", async (req, res) => {
         bannerUrl,
         capacity,
         description,
-        schedules: [],
+        schedules: Array.isArray(schedules) ? schedules : [],
         status,
       })
       .returning({ id: classes.id });
@@ -130,6 +143,13 @@ router.get("/:id", async (req, res) => {
       return res.status(400).json({ error: "Invalid class id" });
     }
 
+    const accessCondition =
+      req.user?.role === "student"
+        ? sql`${classes.id} IN (SELECT ${enrollments.classId} FROM ${enrollments} WHERE ${enrollments.studentId} = ${req.user.id})`
+        : req.user?.role === "teacher"
+          ? eq(classes.teacherId, req.user.id ?? "")
+          : undefined;
+
     const [classDetails] = await db
       .select({
         ...getTableColumns(classes),
@@ -142,12 +162,16 @@ router.get("/:id", async (req, res) => {
         teacher: {
           ...getTableColumns(user),
         },
+        enrollmentCount: sql<number>`(
+          SELECT count(*) FROM ${enrollments}
+          WHERE ${enrollments.classId} = ${classes.id}
+        )`.mapWith(Number),
       })
       .from(classes)
       .leftJoin(subjects, eq(classes.subjectId, subjects.id))
       .leftJoin(departments, eq(subjects.departmentId, departments.id))
       .leftJoin(user, eq(classes.teacherId, user.id))
-      .where(eq(classes.id, classId));
+      .where(and(eq(classes.id, classId), accessCondition));
 
     if (!classDetails) {
       return res.status(404).json({ error: "Class not found" });
@@ -168,6 +192,21 @@ router.get("/:id/users", async (req, res) => {
 
     if (!Number.isFinite(classId)) {
       return res.status(400).json({ error: "Invalid class id" });
+    }
+
+    if (req.user?.role === "student") {
+      return res.status(403).json({ error: "Students cannot access class user lists" });
+    }
+
+    if (req.user?.role === "teacher") {
+      const [ownedClass] = await db
+        .select({ id: classes.id })
+        .from(classes)
+        .where(and(eq(classes.id, classId), eq(classes.teacherId, req.user.id ?? "")));
+
+      if (!ownedClass) {
+        return res.status(403).json({ error: "Teachers can only access their own class users" });
+      }
     }
 
     if (role !== "teacher" && role !== "student") {
@@ -215,7 +254,7 @@ router.get("/:id/users", async (req, res) => {
           .leftJoin(enrollments, eq(user.id, enrollments.studentId))
           .where(and(eq(user.role, role), eq(enrollments.classId, classId)));
 
-    const totalCount = countResult[0]?.count ?? 0;
+    const totalCount = Number(countResult[0]?.count ?? 0);
 
     const usersList =
       role === "teacher"
@@ -250,6 +289,81 @@ router.get("/:id/users", async (req, res) => {
   } catch (error) {
     console.error("GET /classes/:id/users error:", error);
     res.status(500).json({ error: "Failed to fetch class users" });
+  }
+});
+
+// Update a class
+router.patch("/:id", async (req, res) => {
+  try {
+    const classId = Number(req.params.id);
+    if (!Number.isFinite(classId)) {
+      return res.status(400).json({ error: "Invalid class id" });
+    }
+
+    const {
+      name,
+      teacherId,
+      subjectId,
+      capacity,
+      description,
+      status,
+      bannerUrl,
+      bannerCldPubId,
+      schedules,
+    } = req.body;
+
+    const updateData: any = {
+      name,
+      teacherId,
+      subjectId,
+      capacity,
+      description,
+      status,
+      bannerUrl,
+      bannerCldPubId,
+    };
+    if (schedules !== undefined) {
+      updateData.schedules = Array.isArray(schedules) ? schedules : [];
+    }
+
+    const [updatedClass] = await db
+      .update(classes)
+      .set(updateData)
+      .where(eq(classes.id, classId))
+      .returning();
+
+    if (!updatedClass) {
+      return res.status(404).json({ error: "Class not found" });
+    }
+
+    res.status(200).json({ data: updatedClass });
+  } catch (error) {
+    console.error("PATCH /classes/:id error:", error);
+    res.status(500).json({ error: "Failed to update class" });
+  }
+});
+
+// Delete a class
+router.delete("/:id", async (req, res) => {
+  try {
+    const classId = Number(req.params.id);
+    if (!Number.isFinite(classId)) {
+      return res.status(400).json({ error: "Invalid class id" });
+    }
+
+    const [deletedClass] = await db
+      .delete(classes)
+      .where(eq(classes.id, classId))
+      .returning();
+
+    if (!deletedClass) {
+      return res.status(404).json({ error: "Class not found" });
+    }
+
+    res.status(200).json({ data: deletedClass });
+  } catch (error) {
+    console.error("DELETE /classes/:id error:", error);
+    res.status(500).json({ error: "Failed to delete class" });
   }
 });
 

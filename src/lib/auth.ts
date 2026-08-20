@@ -6,11 +6,15 @@ import * as schema from "../schema/auth.js";
 
 const frontendUrl = process.env.FRONTEND_URL ?? "http://localhost:5173";
 const baseUrl = process.env.BETTER_AUTH_URL ?? "https://classroom-backend-production-a01c.up.railway.app";
+const trustedOrigins = [
+  frontendUrl,
+  ...Array.from({ length: 10 }, (_, index) => `http://localhost:${5173 + index}`),
+].filter((origin, index, origins) => origins.indexOf(origin) === index);
 
 export const auth = betterAuth({
   baseURL: baseUrl,
   secret: process.env.BETTER_AUTH_SECRET ?? "dev-secret",
-  trustedOrigins: [frontendUrl],
+  trustedOrigins,
   database: drizzleAdapter(db, {
     provider: "pg",
     schema,
@@ -18,13 +22,33 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user) => {
+          const requestedRole = user.role;
+
+          if (requestedRole === "admin") {
+            throw new Error("Admin accounts cannot be created through registration");
+          }
+
+          return {
+            data: {
+              ...user,
+              role: requestedRole === "teacher" ? "teacher" : "student",
+            },
+          };
+        },
+      },
+    },
+  },
   user: {
     additionalFields: {
       role: {
         type: "string",
         required: true,
         defaultValue: "student",
-        input: true, // Allow role to be set during registration
+        input: true,
       },
       imageCldPubId: {
         type: "string",

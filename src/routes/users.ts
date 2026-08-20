@@ -74,4 +74,54 @@ router.get("/", async (req, res) => {
   }
 });
 
+// Get single user by id
+router.get("/:id", async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const [foundUser] = await db
+      .select()
+      .from(user)
+      .where(eq(user.id, userId));
+
+    if (!foundUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    res.status(200).json({ data: foundUser });
+  } catch (error) {
+    console.error("GET /users/:id error:", error);
+    res.status(500).json({ error: "Failed to fetch user" });
+  }
+});
+
+// Update a user's name and email
+router.patch("/:id", async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const { name, email } = req.body;
+
+    const updateData: any = {};
+    if (name) updateData.name = name;
+    if (email) updateData.email = email;
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ error: "No fields to update" });
+    }
+
+    const [updatedUser] = await db
+      .update(user)
+      .set(updateData)
+      .where(eq(user.id, userId))
+      .returning();
+
+    if (!updatedUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.status(200).json({ data: updatedUser });
+  } catch (error) {
+    console.error("PATCH /users/:id error:", error);
+    res.status(500).json({ error: "Failed to update user", details: error instanceof Error ? error.message : String(error) });
+  }
+});
+
 export default router;
