@@ -1,14 +1,4 @@
-import('apminsight')
-  .then((module) => {
-    const AgentAPI = module.default;
-    try {
-      AgentAPI.config();
-      console.log('APM agent loaded and configured via apminsight');
-    } catch (apmErr) {
-      console.error('APM agent failed to configure:', apmErr);
-    }
-  })
-  .catch((err) => console.log('APM not available in this environment:', err));
+// APM agent removed for Vercel compatibility
 
 import cors from "cors";
 import express from "express";
